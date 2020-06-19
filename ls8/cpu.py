@@ -53,7 +53,7 @@ class CPU:
         """Construct a new CPU."""
         # program counter
         self.pc = 0  # program counter
-        # 8 new registers
+        # 8 new reg
         self.reg = [0] * 8  # register
         # memory storage for ram
         self.ram = [0] * 256
@@ -61,18 +61,21 @@ class CPU:
         self.fl = 0b11000000  # Flags Register
 
         self.branchtable = {
-            MUL = self.handle_mul,
-            ADD = self.handle_add,
-            LDI = self.handle_ldi,
-            HLT = self.handle_hlt,
-            PRN = self.handle_prn,
-            POP = self.handle_pop,,
-            PUSH = self.handle_push,
-            RET = self.handle_ret,
-            CALL = self.handle_call,
-            JMP = self.handle_jmp,
-            ST = self.handle_st,
-            IRET = self.handle_iret
+            MUL : self.handle_mul,
+            ADD : self.handle_add,
+            LDI : self.handle_ldi,
+            HLT : self.handle_hlt,
+            PRN : self.handle_prn,
+            POP : self.handle_pop,
+            PUSH : self.handle_push,
+            RET : self.handle_ret,
+            CALL : self.handle_call,
+            JMP : self.handle_jmp,
+            ST : self.handle_st,
+            IRET : self.handle_iret,
+            JEQ  : self.handle_jeq,
+            JNE : self.handle_jne,
+            CMP : self.handle_cmp
 
         }
         
@@ -80,20 +83,20 @@ class CPU:
     # Interrupt Mask is R5
     @property
     def IM(self):
-        return self.registers[5]
+        return self.reg[5]
 
     @IM.setter
     def IM(self, value):
-        self.registers[5] = value
+        self.reg[5] = value
 
     # Interrupt Status is R6
     @property
     def IS(self):
-        return self.registers[6]
+        return self.reg[6]
 
     @IS.setter
     def IS(self, value):
-        self.registers[6] = value
+        self.reg[6] = value
 
     def load(self):
         """Load a program into memory."""
@@ -131,6 +134,21 @@ class CPU:
             self.reg[operand_a] = self.reg[operand_a] >> self.reg[operand_b]
         elif op == "SHL":
             self.reg[operand_a] = self.reg[operand_a] << self.reg[operand_b] & 0xFF
+        elif op == "CMP":
+            if self.reg[operand_a] == self.reg[operand_b]:
+                self.fl = self.fl | 0b00000001
+            else:
+                self.fl = self.fl & 0b11111110
+
+            if self.reg[operand_a] > self.reg[operand_b]:
+                self.fl = self.fl | 0b00000010
+            else:
+                self.fl = self.fl & 0b11111101
+
+            if self.reg[operand_a] < self.reg[operand_b]:
+                self.fl = self.fl | 0b00000100
+            else:
+                self.fl = self.fl & 0b11111011
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -205,6 +223,12 @@ class CPU:
         self.alu("ADD", operand_a, operand_b)
         self.pc = self.pc + 3
 
+    def handle_cmp(self):
+        operand_a = self.ram_read(self.pc + 1)
+        operand_b = self.ram_read(self.pc + 2)
+        self.alu("CMP", operand_a, operand_b)
+        self.pc = self.pc + 3
+
     def handle_prn(self):
         operand_a = self.ram_read(self.pc + 1)
         print(self.reg[operand_a])
@@ -252,6 +276,18 @@ class CPU:
         # operand_b = self.ram_read(self.pc + 2)
         # self.ram_write(self.reg[operand_a], self.reg[operand_b])
         print("ST")
+
+    def handle_jeq(self):
+        if self.fl & 0b00000001 == 1:
+            self.handle_jmp()
+        else:
+            self.pc += 2
+
+    def handle_jne(self):
+        if self.fl & 0b00000001 == 0:
+            self.handle_jmp()
+        else:
+            self.pc += 2
 
     def handle_iret(self):
 
