@@ -72,8 +72,11 @@ class CPU:
             CALL = self.handle_call,
             JMP = self.handle_jmp,
             ST = self.handle_st,
-            IRET = self.handle_iret
-
+            IRET = self.handle_iret,
+            JEQ  = self.handle_jeq,
+            JNE = self.handle_jne,
+            CMP = self.handle_cmp,
+            
         }
         
 
